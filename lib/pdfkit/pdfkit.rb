@@ -22,7 +22,9 @@ class PDFKit
 
     @stylesheets = []
 
-    @toc = options.key?(:toc) ? normalize_options(options[:toc], true) : nil
+    @toc   = options.key?(:toc) ? normalize_options(options[:toc], true) : nil
+    @cover = options.key?(:cover) ? options[:cover] : nil
+
     @options = PDFKit.configuration.default_options.merge(options)
     @options.merge! find_options_in_meta(url_file_or_html) unless source.url?
     @options = normalize_options(@options)
@@ -34,9 +36,16 @@ class PDFKit
     args = [executable]
     args += @options.to_a.flatten.compact
     args << '--quiet'
+
+    # Table of Contents
     if @toc.present?
        args << 'toc'
        args += @toc.to_a.flatten
+    end
+
+    # Cover page
+    if @cover.present?
+        args << "cover #{@cover}"
     end
 
     if @source.html?
@@ -114,11 +123,11 @@ class PDFKit
       end
     end
 
-    def normalize_options(options, toc = false)
+    def normalize_options(options, allow_specials = false)
       normalized_options = {}
 
       options.each do |key, value|
-        next if !value || (!toc && key == :toc)
+        next if !value || (!allow_specials && [:toc, :cover].include?(key))
         normalized_key = "--#{normalize_arg key}"
         normalized_options[normalized_key] = normalize_value(value)
       end
